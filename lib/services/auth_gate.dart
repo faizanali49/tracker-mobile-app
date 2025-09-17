@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:trackermobile/services/auth_service.dart';
 import 'package:trackermobile/views/company_authentication/login.dart';
-import 'package:trackermobile/views/home.dart';
+import 'package:trackermobile/views/home/home.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});

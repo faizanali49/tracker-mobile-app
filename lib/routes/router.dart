@@ -4,8 +4,8 @@ import 'package:trackermobile/views/company_authentication/add_employee_view.dar
 import 'package:trackermobile/views/company_authentication/login.dart';
 import 'package:trackermobile/views/company_authentication/singn_up.dart';
 import 'package:trackermobile/views/splash.dart';
-import 'package:trackermobile/views/employee_view.dart';
-import 'package:trackermobile/views/home.dart';
+import 'package:trackermobile/views/emplooyee_view/employee_view.dart';
+import 'package:trackermobile/views/home/home.dart';
 
 // Configure routes
 final GoRouter router = GoRouter(
