@@ -7,14 +7,14 @@ import 'package:trackermobile/views/company_authentication/provider/login_state.
 import 'package:trackermobile/themes/buttons.dart';
 import 'package:trackermobile/themes/textfields.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class SignInView extends ConsumerStatefulWidget {
+  const SignInView({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<SignInView> createState() => _SignInViewState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _SignInViewState extends ConsumerState<SignInView> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final _formKey = GlobalKey<FormState>();

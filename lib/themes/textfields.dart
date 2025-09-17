@@ -11,7 +11,6 @@ class CustomTextField extends StatelessWidget {
   final int? maxLines;
   final String? hintText;
   final errorText;
-  
 
   const CustomTextField({
     Key? key,
@@ -50,7 +49,7 @@ class CustomTextField extends StatelessWidget {
         fillColor: Colors.white,
         enabledBorder: borderStyle,
         focusedBorder: borderStyle.copyWith(
-          borderSide: BorderSide(color: Colors.grey.shade700, width: 2),
+          borderSide: BorderSide(color: Colors.grey.shade700, width: 1),
         ),
       ),
     );

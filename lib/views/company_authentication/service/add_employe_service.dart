@@ -56,38 +56,6 @@ class EmployeeService {
         );
       }
 
-      // --- Perform Firestore/Storage Operations First ---
-
-      // 3. Generate a placeholder UID for the new employee (Firestore doc ID)
-      // We'll use this as the document ID in Firestore and for the auth UID if creation succeeds.
-      // Note: Firebase Auth will generate the actual UID, but we can use this for doc ID.
-      // A more robust way on backend would be to create the user first, get the UID,
-      // then write to Firestore. On client, we proceed and handle potential mismatches.
-      // For now, let's use the email hash or a temporary ID, but it's simpler to let Auth create it
-      // and then write. Let's adjust the logic slightly.
-
-      // Let's create the Auth user FIRST to get the UID, but handle rollback if Firestore fails.
-      // This is a common pattern even though it means potential orphaned Auth users if Firestore fails.
-      // The rollback will try to delete the Auth user if Firestore/Storage fails.
-      // Alternatively, create a temporary Firestore doc first, then Auth, then finalize Firestore doc.
-      // Let's stick closer to your original idea: Firestore/Storage first, then Auth.
-
-      // Actually, let's revise the plan based on standard practices and your request:
-      // 1. Validate & Check Duplicates (Done)
-      // 2. Upload Avatar (if provided) to Storage -> Get URL
-      // 3. Prepare Employee Data (including avatar URL)
-      // 4. Attempt to Create Firebase Auth User -> Get UID
-      // 5. If Auth Succeeds:
-      //     a. Write full data to Firestore using the Auth UID as document ID.
-      //     b. If Firestore Write Fails:
-      //         i. Attempt to Delete the newly created Auth User (Rollback Auth).
-      //         ii. Re-throw the Firestore error.
-      // 6. If Auth Fails:
-      //     a. No need to rollback Firestore (wasn't written yet).
-      //     b. Re-throw the Auth error.
-
-      // Proceeding with this revised plan:
-
       // 2. Upload Avatar (if provided) to Storage
       if (avatarFile != null) {
         print('Uploading avatar for employee: $email');
@@ -101,17 +69,6 @@ class EmployeeService {
               .child(companyId)
               .child('employee_avatars')
               .child(fileName); // Use unique name
-
-          // Optional: Compress image before upload using your ImageUtils provider
-          // final imageUtils = ref.read(imageUtilsProvider); // If you have access to ref here, or pass it in
-          // String? compressedBase64 = await imageUtils.compressAndConvertToBase64(avatarFile);
-          // if (compressedBase64 != null) {
-          //   // Upload base64 string instead of file
-          //   // This requires a different approach, e.g., storing base64 in Firestore
-          //   // Or converting base64 back to bytes for upload
-          //   // For direct file upload, proceed with File:
-          // }
-
           final uploadTask = storageRef.putFile(avatarFile);
           final snapshot = await uploadTask.whenComplete(() {});
           avatarUrl = await snapshot.ref.getDownloadURL();
@@ -119,22 +76,6 @@ class EmployeeService {
           print('Avatar uploaded successfully. URL: $avatarUrl');
         } catch (storageError) {
           print('Storage upload failed: $storageError');
-          // Fallback to base64 if needed, or just fail
-          // For now, let's try base64 as a fallback within the same try block
-          // try {
-          //   print('Falling back to Base64 encoding for avatar.');
-          //   final bytes = await avatarFile.readAsBytes();
-          //   avatarBase64Fallback = base64Encode(bytes);
-          //   print('Avatar encoded to Base64 (fallback).');
-          // } catch (base64Error) {
-          //   print('Base64 encoding also failed: $base64Error');
-          //   // If both fail, we could throw an error here, or proceed without avatar.
-          //   // Let's proceed without avatar if upload fails.
-          //   avatarUrl = null;
-          //   avatarBase64Fallback = null;
-          //   // Optionally, throw if avatar is mandatory
-          //   // throw Exception('Failed to process employee avatar: $storageError');
-          // }
         }
       }
 
@@ -242,13 +183,6 @@ class EmployeeService {
       }
     } catch (e) {
       print('Error creating employee: $e');
-      // General error handling - ensure state is clean-ish
-      // Specific rollbacks for Auth/Storage are handled in their respective catch blocks above.
-
-      // If an error occurred before Auth (e.g., duplicate check, storage base64), no rollback needed.
-
-      // If an error occurred after Auth but before Firestore, rollback Auth (handled above).
-      // If an error occurred after Firestore, rollback Firestore doc and Auth (handled above).
 
       rethrow; // Propagate the error to the UI
     }

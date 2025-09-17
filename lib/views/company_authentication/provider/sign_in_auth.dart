@@ -10,6 +10,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 final usernameProvider = StateProvider<String?>((ref) => null);
 
+// Company ID
+final companyIdProvider = StateProvider<String?>((ref) => null);
+
 class AuthRepository {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
@@ -34,6 +37,7 @@ class AuthRepository {
           .collection('companies')
           .doc(user.uid)
           .get();
+
       if (!companyDoc.exists) {
         // ❌ Not a company user - check if it's an employee
         final userDoc = await _firestore
@@ -61,6 +65,8 @@ class AuthRepository {
           message: 'This account is not registered as a company.',
         );
       }
+      // print('Company login successful! CompanyID: ${user.uid}');
+      // print('Company name: ${companyDoc.data()?['company'] ?? 'Unknown'}');
 
       return user; // ✅ Company user found
     } on FirebaseAuthException catch (e) {

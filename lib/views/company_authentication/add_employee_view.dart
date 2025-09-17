@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:trackermobile/themes/buttons.dart';
 import 'package:trackermobile/themes/colors.dart';
 import 'package:trackermobile/themes/textfields.dart';
-import 'package:trackermobile/views/company_authentication/provider/login_auth.dart';
+import 'package:trackermobile/views/company_authentication/provider/sign_in_auth.dart';
 import 'package:trackermobile/views/company_authentication/service/add_employe_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -187,7 +187,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Add Employee $userrole"),
+        title: Text("Add Employee"),
         backgroundColor: primaryColor,
         elevation: 0,
       ),

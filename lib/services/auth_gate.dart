@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:trackermobile/services/auth_service.dart';
-import 'package:trackermobile/views/company_authentication/login.dart';
+import 'package:trackermobile/views/company_authentication/sign_in_view.dart';
 import 'package:trackermobile/views/home/home.dart';
 
 class AuthGate extends StatelessWidget {
@@ -17,7 +17,7 @@ class AuthGate extends StatelessWidget {
           );
         }
         final user = snapshot.data;
-        if (user == null) return const LoginScreen();
+        if (user == null) return const SignInView();
         // Optionally check emailVerified here:
         // if (!user.emailVerified) return const VerifyEmailScreen();
         return HomeView();
