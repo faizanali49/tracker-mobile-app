@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "268379069586",
+    "project_id": "tracker-785f3",
+    "storage_bucket": "tracker-785f3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:268379069586:android:ef7a5a108bd3784e001a4b",
+        "android_client_info": {
+          "package_name": "com.example.trackermobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhlpdJdEuU-uG_8sZHM_OHJbNNT0ICI6E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
