@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:trackermobile/views/home/employee_model/fetch_employee_model.dart';
+import 'package:trackermobile/models/fetch_employee_model.dart';
 
 class EmployeeService {
   final FirebaseAuth _auth = FirebaseAuth.instance;

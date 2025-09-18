@@ -19,6 +19,7 @@ class AuthService {
     return cred;
   }
 
+
   // Sign in
   Future<UserCredential> signInWithEmail(String email, String password) async {
     final cred = await _auth.signInWithEmailAndPassword(
@@ -32,9 +33,6 @@ class AuthService {
   Future<void> sendPasswordReset(String email) async {
     await _auth.sendPasswordResetEmail(email: email.trim());
   }
-
-  // Sign out
-  Future<void> signOut() async => _auth.signOut();
 
   // Current user
   User? get currentUser => _auth.currentUser;

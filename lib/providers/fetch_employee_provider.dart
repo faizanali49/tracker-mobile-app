@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:trackermobile/views/home/employee_model/fetch_employee_model.dart';
-import 'package:trackermobile/views/home/services/employee_service.dart';
+import 'package:trackermobile/models/fetch_employee_model.dart';
+import 'package:trackermobile/services/fetch_employee_service.dart';
 
 final employeeServiceProvider = Provider<EmployeeService>((ref) {
   return EmployeeService();
@@ -19,14 +19,16 @@ class EmployeeNotifier extends StateNotifier<AsyncValue<List<Employee>>> {
     fetchEmployees();
   }
 
-  Future<void> fetchEmployees() async {
+  Future<List<Employee>> fetchEmployees() async {
     state = const AsyncValue.loading();
     try {
       final employees = await employeeService.fetchEmployees();
       state = AsyncValue.data(employees);
+      return employees;
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
+    throw Exception('Failed to fetch employees');
   }
 
   void refresh() {

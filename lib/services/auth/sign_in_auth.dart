@@ -4,14 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository();
-});
+// String sign_companyId = '';
 
-final usernameProvider = StateProvider<String?>((ref) => null);
-
-// Company ID
-final companyIdProvider = StateProvider<String?>((ref) => null);
 
 class AuthRepository {
   final _auth = FirebaseAuth.instance;
@@ -23,6 +17,13 @@ class AuthRepository {
     required String password,
   }) async {
     try {
+      // Clear any existing state
+      final currentUser = _auth.currentUser;
+      if (currentUser != null && currentUser.email != email) {
+        // If trying to sign in as a different user, sign out first
+        await _auth.signOut();
+      }
+
       // Firebase Auth login
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
@@ -67,6 +68,7 @@ class AuthRepository {
       }
       // print('Company login successful! CompanyID: ${user.uid}');
       // print('Company name: ${companyDoc.data()?['company'] ?? 'Unknown'}');
+      // sign_companyId = user.uid;
 
       return user; // ✅ Company user found
     } on FirebaseAuthException catch (e) {

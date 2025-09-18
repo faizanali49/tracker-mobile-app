@@ -1,12 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart'; // Add this import
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:trackermobile/services/auth/sign_up_service.dart';
 import 'package:trackermobile/themes/buttons.dart';
 import 'package:trackermobile/themes/textfields.dart';
 
@@ -19,47 +15,32 @@ class SignupView extends StatefulWidget {
 
 class _SignupViewState extends State<SignupView> {
   final _formKey = GlobalKey<FormState>();
+  final _authService = SignupAuthService();
+
   File? _selectedImage;
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _companyController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _companyController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
   bool _isLoading = false;
-  final OutlineInputBorder _borderStyle = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12.0),
-    borderSide: BorderSide(color: Colors.grey.shade700, width: 1.5),
-  );
 
   Future<void> _pickImage() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxHeight: 600,
-        maxWidth: 600,
-        imageQuality: 40,
-      );
-
-      if (pickedFile != null) {
-        final file = File(pickedFile.path);
-        if (await file.exists()) {
-          setState(() {
-            _selectedImage = file;
-          });
-        } else {
-          _showSnack("Selected image file is invalid or does not exist.");
-        }
+      final image = await _authService.pickImage();
+      if (image != null && await image.exists()) {
+        setState(() => _selectedImage = image);
+      } else {
+        _showSnack("Selected image is invalid or doesn't exist.");
       }
     } catch (e) {
-      _showSnack("Failed to pick image: ${e.toString()}");
+      _showSnack("Failed to pick image: $e");
     }
   }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_passwordController.text != _confirmPasswordController.text) {
       _showSnack("Passwords do not match");
       return;
@@ -68,72 +49,28 @@ class _SignupViewState extends State<SignupView> {
     setState(() => _isLoading = true);
 
     try {
-      final auth = FirebaseAuth.instance;
-
-      // ✅ Create account
-      final userCredential = await auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      await _authService.registerUser(
+        email: _emailController.text,
+        password: _passwordController.text,
+        username: _usernameController.text,
+        company: _companyController.text,
+        imageFile: _selectedImage,
       );
 
-      final uid = userCredential.user!.uid;
-
-      // ✅ Upload image to Firebase Storage instead of Base64
-      String? photoUrl;
-      if (_selectedImage != null && await _selectedImage!.exists()) {
-        try {
-          // Create a storage reference with company ID and timestamp
-          final storageRef = FirebaseStorage.instance
-              .ref()
-              .child('company_avatars')
-              .child('$uid.jpg');
-
-          // Show upload progress (optional)
-          final uploadTask = storageRef.putFile(_selectedImage!);
-          uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-            final progress = snapshot.bytesTransferred / snapshot.totalBytes;
-            print('Upload progress: ${(progress * 100).toStringAsFixed(2)}%');
-          });
-
-          // Wait for upload to complete
-          await uploadTask.whenComplete(() => print('Upload complete'));
-
-          // Get download URL
-          photoUrl = await storageRef.getDownloadURL();
-          print('Image uploaded. URL: $photoUrl');
-        } catch (e) {
-          print('Error uploading image: $e');
-          _showSnack('Profile image upload failed, but account was created');
-        }
-      }
-
-      // ✅ Save profile to Firestore with image URL instead of Base64
-      await FirebaseFirestore.instance.collection('companies').doc(uid).set({
-        'uid': uid,
-        'email': _emailController.text.trim(),
-        'username': _usernameController.text.trim(),
-        'company': _companyController.text.trim(),
-        'avatarUrl': photoUrl ?? '', // Store URL instead of Base64
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // ✅ Send verification email
-      if (userCredential.user != null && !userCredential.user!.emailVerified) {
-        await userCredential.user!.sendEmailVerification();
-        _showSnack('Verification email sent. Please check your inbox.');
-      }
-
-      if (mounted) context.go('/home');
+      _showSnack("Account is created. Verification email sent.");
+      if (mounted) context.go('/login');
     } catch (e) {
-      _showSnack('Signup failed: $e');
+      _showSnack("Signup failed: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showSnack(String text) {
+  void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -153,7 +90,6 @@ class _SignupViewState extends State<SignupView> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Decorative circle
             Positioned(
               top: -100,
               right: -100,
@@ -175,20 +111,16 @@ class _SignupViewState extends State<SignupView> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      /// Title
                       const Text(
                         "Create Account",
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 30),
 
-                      /// Profile Picture Upload
                       GestureDetector(
                         onTap: _pickImage,
                         child: CircleAvatar(
@@ -208,77 +140,58 @@ class _SignupViewState extends State<SignupView> {
                       ),
                       const SizedBox(height: 20),
 
-                      /// Email Field
                       CustomTextField(
                         controller: _usernameController,
                         labelText: 'Username',
                         prefixIcon: PhosphorIcons.user(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Please enter your Username";
-                          }
-                          return null;
-                        },
+                        validator: (val) => val == null || val.isEmpty
+                            ? 'Enter your username'
+                            : null,
                       ),
                       const SizedBox(height: 20),
+
                       CustomTextField(
                         controller: _emailController,
                         labelText: 'Email',
                         prefixIcon: PhosphorIcons.at(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Please enter your Email";
-                          }
-                          if (!value.contains('@')) {
-                            return "Please enter a valid email";
-                          }
-                          return null;
-                        },
+                        validator: (val) => val == null || !val.contains('@')
+                            ? 'Enter a valid email'
+                            : null,
                       ),
                       const SizedBox(height: 20),
+
                       CustomTextField(
                         controller: _companyController,
                         labelText: 'Company Name',
                         prefixIcon: PhosphorIcons.identificationBadge(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Please enter your Company Name";
-                          }
-                          return null;
-                        },
+                        validator: (val) => val == null || val.isEmpty
+                            ? 'Enter company name'
+                            : null,
                       ),
                       const SizedBox(height: 20),
+
                       CustomTextField(
                         controller: _passwordController,
                         labelText: 'Password',
                         prefixIcon: PhosphorIcons.password(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Please enter a password";
-                          }
-                          if (value.length < 6) {
-                            return "Password must be at least 6 characters";
-                          }
-                          return null;
-                        },
                         isPassword: true,
+                        validator: (val) => val == null || val.length < 6
+                            ? 'Min 6 characters'
+                            : null,
                       ),
                       const SizedBox(height: 20),
+
                       CustomTextField(
                         controller: _confirmPasswordController,
                         labelText: 'Confirm Password',
                         prefixIcon: PhosphorIcons.repeat(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Please confirm your password";
-                          }
-                          return null;
-                        },
                         isPassword: true,
+                        validator: (val) => val == null || val.isEmpty
+                            ? 'Confirm your password'
+                            : null,
                       ),
                       const SizedBox(height: 30),
 
-                      /// Signup Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -289,31 +202,17 @@ class _SignupViewState extends State<SignupView> {
                               : CustomBtns(text: "Sign Up"),
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
-                      /// Login Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
-                            "Already have an account? ",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
+                          const Text("Already have an account? "),
                           GestureDetector(
-                            onTap: () {
-                              context.go('/login');
-                            },
+                            onTap: () => context.go('/login'),
                             child: const Text(
                               "Login",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.blue,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(color: Colors.blue),
                             ),
                           ),
                         ],
