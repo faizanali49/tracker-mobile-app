@@ -19,8 +19,6 @@ class AuthGate extends StatelessWidget {
         }
         final user = snapshot.data;
         if (user == null) return const SignInView();
-        // Optionally check emailVerified here:
-        // if (!user.emailVerified) return const VerifyEmailScreen();
         return HomeView();
       },
     );

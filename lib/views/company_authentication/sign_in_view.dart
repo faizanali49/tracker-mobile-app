@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trackermobile/providers/sign_in_providers.dart';
-import 'package:trackermobile/services/auth/sign_in_auth_errors.dart';
 import 'package:trackermobile/themes/buttons.dart';
 import 'package:trackermobile/themes/textfields.dart';
 
@@ -26,6 +25,28 @@ class _SignInViewState extends ConsumerState<SignInView> {
     super.dispose();
   }
 
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sign-in Failed'),
+          content: Text(
+            'Incorrect email or password. or check your internet connection.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loginState = ref.watch(signInControllerProvider);
@@ -38,96 +59,77 @@ class _SignInViewState extends ConsumerState<SignInView> {
             context.go('/home');
           }
         },
-        error: (error, _) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Login Failed'),
-              content: Text(mapAuthErrorToMessage(error)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
+        error: (error, stackTrace) {
+          if (error is FirebaseAuthException && error.code == 'not-a-company') {
+            _showErrorDialog(error.message!);
+          } else {
+            // Handle other general errors
+            _showErrorDialog(error.toString());
+          }
         },
       );
     });
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+      body: SingleChildScrollView(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Form(
               key: _formKey,
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset("assets/images/scrape.png", height: 100),
+                  const SizedBox(height: 150),
+                  Image.asset('assets/images/scrape.png', height: 80),
                   const SizedBox(height: 50),
+                  const Text(
+                    'Sign in to your account',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
                   CustomTextField(
+                    labelText: "Email",
                     controller: _email,
-                    labelText: 'Email',
                     prefixIcon: Icons.email,
                     validator: (value) {
-                      if (value == null || value.isEmpty) return "Enter email";
-                      final isValid = RegExp(
-                        r'^[^@]+@[^@]+\.[^@]+',
-                      ).hasMatch(value);
-                      return isValid ? null : "Enter valid email";
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   CustomTextField(
+                    labelText: "Password",
                     controller: _password,
-                    labelText: 'Password',
-                    prefixIcon: Icons.password,
+                    prefixIcon: Icons.lock,
                     isPassword: true,
-                    validator: (value) =>
-                        value?.isEmpty ?? true ? "Enter password" : null,
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: InkWell(
-                      onTap: () {},
-                      child: const Text(
-                        "Forgot Password?",
-                        style: TextStyle(color: Colors.blueAccent),
-                      ),
-                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 40),
                   SizedBox(
-                    width: double.infinity,
                     height: 50,
                     child: InkWell(
                       onTap: () {
-                        if (_formKey.currentState?.validate() ?? false) {
+                        if (_formKey.currentState!.validate()) {
                           ref
                               .read(signInControllerProvider.notifier)
-                              .login(_email.text.trim(), _password.text.trim());
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please enter valid email and password',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                              .login(_email.text, _password.text);
                         }
                       },
+
                       child: loginState.isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.blue,
-                              ),
-                            )
-                          : CustomBtns(text: 'Sign in'),
+                          ? Center(child: const CircularProgressIndicator())
+                          : CustomBtns(text: 'Sign In'),
                     ),
                   ),
                   const SizedBox(height: 20),

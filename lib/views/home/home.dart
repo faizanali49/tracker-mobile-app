@@ -1,11 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:trackermobile/providers/sign_in_providers.dart';
-import 'package:trackermobile/themes/colors.dart';
-import 'package:trackermobile/models/fetch_employee_model.dart';
+import 'package:trackermobile/providers/fetch_company_provider.dart';
 import 'package:trackermobile/providers/fetch_employee_provider.dart';
-import 'package:trackermobile/services/auth/sign_out_global_auth.dart';
+import 'package:trackermobile/providers/sign_in_providers.dart';
+import 'package:trackermobile/widgets/employee_list_widget.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -15,41 +15,33 @@ class HomeView extends ConsumerStatefulWidget {
 }
 
 class _HomeViewState extends ConsumerState<HomeView> {
-  static String? usernrole;
-  bool _isRefreshing = false;
+  String? usernrole;
   String? avatarUrl;
   final _searchController = TextEditingController();
-  List<Employee> _filteredEmployees = [];
+  final String? companyId = FirebaseAuth.instance.currentUser?.email
+      ?.toLowerCase();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
 
-    // Load company data
+    // Set companyEmailProvider state after widget build
+    Future.microtask(() {
+      if (companyId != null) {
+        ref.read(companyEmailProvider.notifier).state = companyId!;
+      }
+    });
+
+    // Fetch company data
     ref.read(companyDataProvider.future).then((data) {
       if (data != null) {
         setState(() {
-          usernrole = data['username'];
-          ref.read(usernameProvider.notifier).state = usernrole;
+          usernrole = data['company'];
           avatarUrl = data['avatarUrl'];
         });
       }
     });
-
-    setState(() => _isRefreshing = true);
-    try {
-      ref.read(employeesProvider.notifier).fetchEmployees();
-    } catch (e) {
-      // Optionally handle error
-    } finally {
-      if (mounted) setState(() => _isRefreshing = false);
-    }
-
-    // ref.invalidate(employeesProvider);
-
-    // _searchController.addListener(() {
-    //   final employees = ref.read(employeesProvider).value ?? [];
-    // });
   }
 
   @override
@@ -60,311 +52,304 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    final employeesAsync = ref.watch(employeesProvider);
+    if (companyId == null) {
+      return const Scaffold(body: Center(child: Text('User not logged in')));
+    }
 
-    return Stack(
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            image: DecorationImage(
-              image: AssetImage('assets/images/home-bg1.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final employeesAsyncValue = ref.watch(employeesStreamProvider(companyId!));
+
+    return Container(
+      // Add decoration with background image
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/bg-2.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Scaffold(
+        // Make the scaffold background transparent to show the image
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.white.withValues(alpha: 0.6),
+          elevation: 0,
+          toolbarHeight: 80,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundImage:
-                            avatarUrl != null && avatarUrl!.isNotEmpty
-                            ? NetworkImage(avatarUrl!)
-                            : const AssetImage('assets/images/boss.jpg')
-                                  as ImageProvider,
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            usernrole ?? 'Raza',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            "Admin",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
+                        ? NetworkImage(avatarUrl!)
+                        : const AssetImage('assets/images/boss.jpg')
+                              as ImageProvider,
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        context.push('/add-employee', extra: usernrole);
-                      },
-                      icon: const Icon(Icons.add, color: Colors.blueAccent),
-                    ),
-                  ),
-                  Row(
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Add refresh button
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.blue),
-                        onPressed: _isRefreshing
-                            ? null
-                            : () async {
-                                setState(() => _isRefreshing = true);
-                                try {
-                                  await ref
-                                      .read(employeesProvider.notifier)
-                                      .fetchEmployees();
-                                } catch (e) {
-                                  // Optionally handle error
-                                } finally {
-                                  if (mounted)
-                                    setState(() => _isRefreshing = false);
-                                }
-                              },
+                      Text(
+                        usernrole ?? 'Company',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
                       ),
-
-                      // Replace the sign out button's onPressed method with this:
-                      IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.red),
-                        onPressed: () async {
-                          try {
-                            await performGlobalSignOut(ref);
-                            if (context.mounted) {
-                              context.go('/login');
-                            }
-                          } catch (e) {
-                            // ignore: use_build_context_synchronously
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error signing out: $e')),
-                            );
-                          }
-                        },
+                      const Text(
+                        "Admin",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.normal,
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      context.push('/add-employee');
+                    },
+                    icon: const Icon(
+                      Icons.person_add_alt_1,
+                      color: Colors.blueAccent,
+                      size: 28,
+                    ),
+                    tooltip: 'Add Employee',
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: Colors.blue,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      ref.invalidate(employeesStreamProvider(companyId!));
+                    },
+                    tooltip: 'Refresh',
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.red, size: 28),
+                    onPressed: () async {
+                      try {
+                        await FirebaseAuth.instance.signOut();
+                        if (context.mounted) {
+                          context.go('/login');
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error signing out: $e')),
+                        );
+                      }
+                    },
+                    tooltip: 'Logout',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 18,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Colors.grey,
+                    size: 24,
+                  ),
+                  hintText: "Search employee...",
+                  hintStyle: TextStyle(fontSize: 16, color: Colors.grey[500]),
+                  border: InputBorder.none,
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(
+                      color: Colors.blueAccent,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              ),
             ),
-
-            body: Column(
-              children: [
-                /// Search bar
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              child: Text(
+                'Employees',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Expanded(
+              child: employeesAsyncValue.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error, color: Colors.red, size: 60),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Error: $error',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Optional retry logic here
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ],
                   ),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      hintText: "Search employee...",
-                      hintStyle: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
-                      border: InputBorder.none,
-                    ),
-                  ),
                 ),
+                data: (employees) {
+                  final filteredEmployees = _searchQuery.isEmpty
+                      ? employees
+                      : employees
+                            .where(
+                              (e) => e.name.toLowerCase().contains(
+                                _searchQuery.toLowerCase(),
+                              ),
+                            )
+                            .toList();
 
-                /// Employee List
-                Expanded(
-                  child: employeesAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (error, stack) => Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error, color: Colors.red, size: 48),
-                          const SizedBox(height: 16),
-                          Text('Error: $error'),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              ref.invalidate(employeesProvider);
-                            },
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    data: (employees) {
-                      // Initialize filtered list if empty
-                      if (_filteredEmployees.isEmpty &&
-                          _searchController.text.isEmpty) {
-                        _filteredEmployees = employees;
-                      }
-
-                      if (_filteredEmployees.isEmpty) {
-                        return const Center(child: Text("No employees found"));
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: () async {
-                          setState(() => _isRefreshing = true);
-                          try {
-                            await ref
-                                .read(employeesProvider.notifier)
-                                .fetchEmployees();
-                          } catch (e) {
-                            // Optionally handle error
-                          } finally {
-                            if (mounted) setState(() => _isRefreshing = false);
-                          }
-                        },
-
-                        child: ListView.builder(
-                          itemCount: _filteredEmployees.length,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemBuilder: (context, index) {
-                            final employee = _filteredEmployees[index];
-                            return InkWell(
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: () {
-                                context.pushNamed(
-                                  'employee',
-                                  pathParameters: {'id': employee.id},
-                                );
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: Colors.white,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                  border: Border.all(
-                                    color: employee.status == 'online'
-                                        ? onlineColor
-                                        : employee.status == 'offline'
-                                        ? offlineColor
-                                        : pauseColor,
-                                    width: 1.2,
-                                  ),
-                                ),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  leading: employee.avatar.startsWith('assets/')
-                                      ? CircleAvatar(
-                                          backgroundImage: AssetImage(
-                                            employee.avatar,
-                                          ),
-                                          radius: 26,
-                                        )
-                                      : CircleAvatar(
-                                          backgroundImage: NetworkImage(
-                                            employee.avatar,
-                                          ),
-                                          radius: 26,
-                                          onBackgroundImageError: (e, s) {
-                                            // Fallback for image loading errors
-                                          },
-                                          child: employee.avatar.isEmpty
-                                              ? Text(
-                                                  employee.name[0]
-                                                      .toUpperCase(),
-                                                )
-                                              : null,
-                                        ),
-                                  title: Text(
-                                    employee.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Last active: ${employee.lastActive}",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      Text(
-                                        employee.role,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey[500],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  trailing: Icon(
-                                    Icons.circle,
-                                    color: employee.status == 'online'
-                                        ? onlineColor
-                                        : employee.status == 'offline'
-                                        ? offlineColor
-                                        : pauseColor,
-                                    size: 12,
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      // Invalidate both providers to refresh all data
+                      ref.invalidate(employeesStreamProvider(companyId!));
+                      ref.invalidate(companyDataProvider);
+                    },
+                    child: filteredEmployees.isEmpty
+                        ? ListView(
+                            // Add ListView to make RefreshIndicator work with empty state
+                            children: const [
+                              SizedBox(height: 100),
+                              Center(
+                                child: Text(
+                                  'No employees found',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black54,
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                            ],
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filteredEmployees.length,
+                            itemBuilder: (context, index) {
+                              final employee = filteredEmployees[index];
+                              final asyncStatus = ref.watch(
+                                employeeCurrentStatus((
+                                  companyId!,
+                                  employee.email,
+                                )),
+                              );
+
+                              return asyncStatus.when(
+                                loading: () => EmployeeListWidget(
+                                  context,
+                                  employee,
+                                  Colors.grey[200]!,
+                                  Colors.grey[400]!,
+                                  false,
+                                ),
+                                error: (error, stack) =>
+                                    Center(child: Text('Error: $error')),
+                                data: (status) {
+                                  Color borderColor = Colors.grey[400]!;
+                                  Color dotColor = Colors.grey[400]!;
+                                  bool hasStatus = false;
+
+                                  if (status.isNotEmpty) {
+                                    hasStatus = true;
+                                    switch (status.first.status.toLowerCase()) {
+                                      case 'online':
+                                        borderColor = Colors.greenAccent;
+                                        dotColor = Colors.green;
+                                        break;
+                                      case 'offline':
+                                        borderColor = Colors.redAccent;
+                                        dotColor = Colors.red;
+                                        break;
+                                      case 'paused':
+                                        borderColor = Colors.orangeAccent;
+                                        dotColor = Colors.orange;
+                                        break;
+                                    }
+                                  }
+
+                                  return EmployeeListWidget(
+                                    context,
+                                    employee,
+                                    borderColor,
+                                    dotColor,
+                                    hasStatus,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  );
+                },
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
+
+// Removing the old buildStatusCard as it's no longer needed for the new design

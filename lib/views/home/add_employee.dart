@@ -1,27 +1,121 @@
 // lib/screens/add_employee_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:trackermobile/providers/add_employee_provider.dart';
 import 'package:trackermobile/themes/buttons.dart';
 import 'package:trackermobile/themes/colors.dart';
 import 'package:trackermobile/themes/textfields.dart';
+import 'package:trackermobile/views/home/image_upload_widget.dart';
 
-class AddEmployeeScreen extends ConsumerWidget {
+class AddEmployeeScreen extends ConsumerStatefulWidget {
   const AddEmployeeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nameController = ref.watch(nameControllerProvider);
-    final roleController = ref.watch(roleControllerProvider);
-    final emailController = ref.watch(emailControllerProvider);
-    final passwordController = ref.watch(passwordControllerProvider);
-    final uploadedFile = ref.watch(uploadedFileProvider);
-    final isLoading = ref.watch(isLoadingProvider);
-    final formKey = ref.watch(formKeyProvider);
+  ConsumerState<AddEmployeeScreen> createState() => _AddEmployeeScreenState();
+}
+
+class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _roleController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _roleController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _showConfirmationDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Create Employee"),
+            content: const Text(
+              "Are you sure you want to create this employee?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final formNotifier = ref.read(employeeFormProvider.notifier);
+    final formState = ref.read(employeeFormProvider);
+
+    final confirmed = await _showConfirmationDialog();
+    if (!confirmed) return;
+
+    final success = await formNotifier.addEmployee(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      role: _roleController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '✅ Employee created and invite sent. Employee must verify email to activate.',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Clear form
+      _nameController.clear();
+      _roleController.clear();
+      _emailController.clear();
+      _passwordController.clear();
+      formNotifier.setImage(null);
+    } else if (mounted) {
+      final errorMessage =
+          formState.errorMessage ?? 'Failed to create employee';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $errorMessage'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showImagePickerDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => ImagePickerDialog(
+        onImageSelected: (image) {
+          ref.read(employeeFormProvider.notifier).setImage(image);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final formState = ref.watch(employeeFormProvider);
 
     return Scaffold(
-      key: ref.read(navigatorKeyProvider),
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Add Employee"),
@@ -44,21 +138,28 @@ class AddEmployeeScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Form(
-              key: formKey,
+              key: _formKey,
               child: SingleChildScrollView(
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
                     CustomTextField(
-                      controller: nameController,
+                      controller: _nameController,
                       labelText: 'Full Name',
                       prefixIcon: Icons.person,
-                      validator: (value) =>
-                          value!.isEmpty ? "Please enter a name" : null,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Please enter a name";
+                        }
+                        if (value.length < 2) {
+                          return "Name must be at least 2 characters";
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     CustomTextField(
-                      controller: roleController,
+                      controller: _roleController,
                       labelText: 'Role',
                       prefixIcon: Icons.work,
                       validator: (value) =>
@@ -66,9 +167,10 @@ class AddEmployeeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     CustomTextField(
-                      controller: emailController,
+                      controller: _emailController,
                       labelText: 'Email',
                       prefixIcon: Icons.email,
+                      keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return "Please enter your email";
@@ -82,7 +184,7 @@ class AddEmployeeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     CustomTextField(
-                      controller: passwordController,
+                      controller: _passwordController,
                       labelText: 'Password',
                       prefixIcon: Icons.lock,
                       isPassword: true,
@@ -94,6 +196,7 @@ class AddEmployeeScreen extends ConsumerWidget {
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 24),
                     const Text(
                       "Picture Upload",
@@ -104,35 +207,7 @@ class AddEmployeeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     InkWell(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text("Upload Image"),
-                            content: const Text("Choose image source"),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  pickImage(ref, ImageSource.gallery);
-                                },
-                                child: const Text("Gallery"),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  pickImage(ref, ImageSource.camera);
-                                },
-                                child: const Text("Camera"),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text("Cancel"),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      onTap: _showImagePickerDialog,
                       child: Container(
                         height: 120,
                         width: double.infinity,
@@ -144,7 +219,7 @@ class AddEmployeeScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(12),
                           color: Colors.grey.shade100,
                         ),
-                        child: uploadedFile == null
+                        child: formState.selectedImage == null
                             ? Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -165,7 +240,7 @@ class AddEmployeeScreen extends ConsumerWidget {
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.file(
-                                  uploadedFile,
+                                  formState.selectedImage!,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   errorBuilder: (context, error, stackTrace) {
@@ -180,10 +255,17 @@ class AddEmployeeScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     Center(
                       child: InkWell(
-                        onTap: isLoading ? null : ref.read(submitFormProvider),
-                        child: isLoading
+                        onTap: formState.isLoading
+                            ? null
+                            : () async {
+                                await _submitForm();
+                                if (context.mounted) {
+                                  context.pop();
+                                }
+                              },
+                        child: formState.isLoading
                             ? const CircularProgressIndicator()
-                            : CustomBtns(text: 'Add Employee'),
+                            : const CustomBtns(text: 'Add Employee'),
                       ),
                     ),
                   ],

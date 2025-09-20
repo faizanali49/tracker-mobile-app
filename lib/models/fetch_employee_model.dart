@@ -1,56 +1,67 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Employee {
+class FetchEmployee {
   final String id;
   final String name;
-  final String avatar;
-  final String status;
-  final String lastActive;
-  final String email;
   final String role;
+  final String email;
+  final String status;
+  final String avatarUrl;
 
-  Employee({
+  FetchEmployee({
     required this.id,
     required this.name,
-    this.avatar = 'assets/images/employee1.jpg',
-    this.status = 'offline',
-    required this.lastActive,
-    required this.email,
     required this.role,
+    required this.email,
+    this.status = 'offline',
+    this.avatarUrl = 'N/A',
   });
 
-  factory Employee.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-
-    // Format the timestamp for lastActive
-    String formattedLastActive = 'Never';
-    if (data['lastActive'] != null) {
-      try {
-        final timestamp = data['lastActive'] as Timestamp;
-        final dateTime = timestamp.toDate();
-        final now = DateTime.now();
-        final difference = now.difference(dateTime);
-
-        if (difference.inMinutes < 60) {
-          formattedLastActive = '${difference.inMinutes} min ago';
-        } else if (difference.inHours < 24) {
-          formattedLastActive = '${difference.inHours} hours ago';
-        } else {
-          formattedLastActive = '${difference.inDays} days ago';
-        }
-      } catch (e) {
-        formattedLastActive = 'Unknown';
-      }
+  factory FetchEmployee.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw Exception('Document data is null');
     }
-
-    return Employee(
+    return FetchEmployee(
       id: doc.id,
-      name: data['name'] ?? 'Unknown',
-      avatar: data['avatarUrl'] ?? 'assets/images/employee1.jpg',
-      status: data['status'] ?? 'offline',
-      lastActive: formattedLastActive,
-      email: data['email'] ?? '',
-      role: data['role'] ?? 'Employee',
+      name: data['name'] as String? ?? 'N/A',
+      role: data['role'] as String? ?? 'N/A',
+      email: data['email'] as String? ?? 'N/A',
+      status: data['status'] as String? ?? 'offline',
+      avatarUrl: data['avatarUrl'] as String? ?? 'N/A',
+    );
+  }
+}
+
+// NOTE: This class is no longer needed because the Employee model now contains status.
+class EmployeeStatus {
+  final String status;
+  final DateTime? timestamp;
+  final String? user;
+  final String? comment;
+  final String? description;
+  final String? title;
+  EmployeeStatus({
+    required this.status,
+    this.timestamp,
+    this.user,
+    this.comment,
+    this.description,
+    this.title,
+  });
+
+  factory EmployeeStatus.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw Exception('Document data is null');
+    }
+    return EmployeeStatus(
+      status: data['status'] as String? ?? 'offline',
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate(),
+      // user: data['user'] as String?,
+      comment: data['comment'] as String?,
+      description: data['description'] as String?,
+      title: data['title'] as String?,
     );
   }
 }

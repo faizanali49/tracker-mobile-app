@@ -1,29 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:easy_stepper/easy_stepper.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:trackermobile/themes/colors.dart';
 
-class EmployeeDetailPage extends StatefulWidget {
+class EmployeeDetailPage extends ConsumerStatefulWidget {
   final String employee;
   const EmployeeDetailPage({super.key, required this.employee});
 
   @override
-  State<EmployeeDetailPage> createState() => _EmployeeDetailPageState();
+  ConsumerState<EmployeeDetailPage> createState() => _EmployeeDetailPageState();
 }
 
-class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
+class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
   int activeStep = 0;
-  late String _id;
-
+  late String employeeEmail;
   late DateTime _focusedDay;
   late DateTime _selectedDay;
   late DateTime _firstDay;
   late DateTime _lastDay;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    employeeEmail = widget.employee;
+  }
+
+  @override
   void initState() {
     super.initState();
-    _id = widget.employee;
+    employeeEmail = widget.employee;
 
     _focusedDay = DateTime.now();
     _selectedDay = DateTime.now();
@@ -56,9 +62,9 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      "Abdullah Javed",
+                      " ${employeeEmail} ",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

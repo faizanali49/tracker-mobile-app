@@ -1,40 +1,64 @@
+// lib/models/employee.dart
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Employee {
-  final String id;
+class AddEmployeeModel {
   final String name;
   final String email;
   final String role;
   final String avatarUrl;
   final String status;
   final bool emailVerified;
-  final DateTime? lastActive;
-  final DateTime? createdAt;
 
-  Employee({
-    required this.id,
+  AddEmployeeModel({
     required this.name,
     required this.email,
     required this.role,
     required this.avatarUrl,
-    required this.status,
-    required this.emailVerified,
-    this.lastActive,
-    this.createdAt,
+    this.status = 'pending',
+    this.emailVerified = false,
   });
 
-  factory Employee.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Employee(
-      id: doc.id,
-      name: data['name'] ?? '',
-      email: data['email'] ?? '',
-      role: data['role'] ?? '',
-      avatarUrl: data['avatarUrl'] ?? '',
-      status: data['status'] ?? '',
-      emailVerified: data['emailVerified'] ?? false,
-      lastActive: (data['lastActive'] as Timestamp?)?.toDate(),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'email': email,
+      'username': email,
+      'role': role,
+      'avatarUrl': avatarUrl,
+      'avatarBase64': '',
+      'status': status,
+      'emailVerified': emailVerified,
+      'lastActive': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+  }
+}
+
+
+class EmployeeFormState {
+  final bool isLoading;
+  final String? errorMessage;
+  final File? selectedImage;
+
+  EmployeeFormState({
+    required this.isLoading,
+    this.errorMessage,
+    this.selectedImage,
+  });
+
+  EmployeeFormState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    File? selectedImage,
+  }) {
+    return EmployeeFormState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage ?? this.errorMessage,
+      selectedImage: selectedImage ?? this.selectedImage,
     );
   }
+
+  static EmployeeFormState get initial => EmployeeFormState(isLoading: false);
 }

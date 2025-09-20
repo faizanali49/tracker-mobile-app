@@ -42,8 +42,20 @@ class SignupAuthService {
     required String company,
     File? imageFile,
   }) async {
+    final companyEmail = email.trim().toLowerCase();
+    
+    // ➡️ FIX: Check Firestore for existing company email before creating the Auth user.
+    final companyDoc = await _firestore.collection('companies').doc(companyEmail).get();
+    
+    if (companyDoc.exists) {
+      throw FirebaseAuthException(
+        code: 'email-already-in-use',
+        message: 'This email is already registered as a company.',
+      );
+    }
+
     final userCredential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
+      email: companyEmail,
       password: password.trim(),
     );
 
@@ -54,9 +66,10 @@ class SignupAuthService {
       photoUrl = await uploadImage(uid, imageFile);
     }
 
-    await _firestore.collection('companies').doc(uid).set({
+    // ➡️ FIX: Use the company's email as the document ID.
+    await _firestore.collection('companies').doc(companyEmail).set({
       'uid': uid,
-      'email': email.trim(),
+      'email': companyEmail,
       'username': username.trim(),
       'company': company.trim(),
       'avatarUrl': photoUrl ?? '',

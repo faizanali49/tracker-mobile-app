@@ -1,114 +1,70 @@
-// lib/providers/add_employee_provider.dart
+// lib/providers/employee_provider.dart
 import 'dart:io';
-import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:trackermobile/services/add_employe_service.dart';
+import 'package:trackermobile/models/add_employee_model.dart';
+import 'package:trackermobile/services/add_employee_service.dart';
 
-// Text Editing Controllers as Providers
-final nameControllerProvider = Provider.autoDispose((ref) => TextEditingController());
-final roleControllerProvider = Provider.autoDispose((ref) => TextEditingController());
-final emailControllerProvider = Provider.autoDispose((ref) => TextEditingController());
-final passwordControllerProvider = Provider.autoDispose((ref) => TextEditingController());
+// Employee Service Provider
+final employeeServiceProvider = Provider<AddEmployeeService>((ref) {
+  return AddEmployeeService();
+});
 
-// Form key provider
-final formKeyProvider = Provider.autoDispose((ref) => GlobalKey<FormState>());
+// Employee Form State Provider
+final employeeFormProvider =
+    StateNotifierProvider<EmployeeFormNotifier, EmployeeFormState>((ref) {
+      return EmployeeFormNotifier(ref.read(employeeServiceProvider));
+    });
 
-// State Providers
-final uploadedFileProvider = StateProvider<File?>((ref) => null);
-final isLoadingProvider = StateProvider<bool>((ref) => false);
+// Form State Notifier
+class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
+  final AddEmployeeService _employeeService;
 
-// Image picking logic
-final imagePickerProvider = Provider((ref) => ImagePicker());
+  EmployeeFormNotifier(this._employeeService)
+    : super(EmployeeFormState.initial);
 
-Future<void> pickImage(WidgetRef ref, ImageSource source) async {
-  final picker = ref.read(imagePickerProvider);
-  final pickedFile = await picker.pickImage(source: source);
-  if (pickedFile != null) {
-    ref.read(uploadedFileProvider.notifier).state = File(pickedFile.path);
+  void setLoading(bool loading) {
+    state = state.copyWith(isLoading: loading);
   }
-}
 
-// Form submission logic
-final submitFormProvider = Provider((ref) {
-  return () async {
-    final formKey = ref.read(formKeyProvider);
-    final isValid = formKey.currentState?.validate() ?? false;
-    if (!isValid) return;
+  void setError(String? error) {
+    state = state.copyWith(errorMessage: error);
+  }
 
-    ref.read(isLoadingProvider.notifier).state = true;
+  void clearError() {
+    state = state.copyWith(errorMessage: null);
+  }
+
+  void setImage(File? image) {
+    state = state.copyWith(selectedImage: image);
+  }
+
+  Future<bool> addEmployee({
+    required String name,
+    required String email,
+    required String role,
+    required String password,
+  }) async {
+    if (state.isLoading) return false;
+
+    setLoading(true);
+    clearError();
 
     try {
-      // Show confirmation dialog
-      final context = ref.read(navigatorKeyProvider).currentContext!;
-      final confirm = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text("Create Employee"),
-          content: const Text("Are you sure you want to create this employee?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
-
-      if (confirm != true) {
-        ref.read(isLoadingProvider.notifier).state = false;
-        return;
-      }
-
-      final name = ref.read(nameControllerProvider).text.trim();
-      final email = ref.read(emailControllerProvider).text.trim();
-      final password = ref.read(passwordControllerProvider).text.trim();
-      final role = ref.read(roleControllerProvider).text.trim();
-      final file = ref.read(uploadedFileProvider);
-
-      await EmployeeService().createEmployee(
+      await _employeeService.addEmployee(
         name: name,
         email: email,
-        password: password,
         role: role,
-        avatarFile: file,
+        password: password,
+        avatarFile: state.selectedImage,
       );
-
-      // Success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Employee created and invite sent. Employee must verify email to activate.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // Clear form
-      ref.read(nameControllerProvider).clear();
-      ref.read(roleControllerProvider).clear();
-      ref.read(emailControllerProvider).clear();
-      ref.read(passwordControllerProvider).clear();
-      ref.read(uploadedFileProvider.notifier).state = null;
-
-      Navigator.of(context).pop(true); // Return success
-
+      return true;
     } catch (e) {
-      final context = ref.read(navigatorKeyProvider).currentContext!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      setError(e.toString());
+      return false;
     } finally {
-      ref.read(isLoadingProvider.notifier).state = false;
+      setLoading(false);
     }
-  };
-});
-
-// Navigator key for showing dialogs/snackbars
-final navigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((ref) {
-  return GlobalKey<NavigatorState>();
-});
+  }
+}

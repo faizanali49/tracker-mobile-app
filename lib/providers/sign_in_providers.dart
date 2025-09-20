@@ -7,11 +7,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
 });
 
-final usernameProvider = StateProvider<String?>((ref) => null);
+final companyEmailProvider = StateProvider<String?>((ref) => null);
 
 // Company ID
-final companyIdProvider = StateProvider<String?>((ref) => null);
-
+// final companyIdProvider = StateProvider<String?>((ref) => null);
 
 final signInControllerProvider =
     StateNotifierProvider<SignInController, AsyncValue<User?>>((ref) {
