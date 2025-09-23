@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trackermobile/providers/fetch_company_provider.dart';
@@ -27,7 +28,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
   @override
   void initState() {
     super.initState();
-
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top], // keep only top
+    );
     // Set companyEmailProvider state after widget build
     Future.microtask(() {
       if (companyId != null) {
@@ -49,6 +53,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
   @override
   void dispose() {
     _searchController.dispose();
+    // SystemChrome.setEnabledSystemUIMode(
+    //   SystemUiMode.manual,
+    //   overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+    // );
     super.dispose();
   }
 
@@ -69,6 +77,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
         ),
       ),
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         // Make the scaffold background transparent to show the image
         backgroundColor: Colors.transparent,
         appBar: AppBar(
@@ -169,7 +178,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha:0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -358,4 +367,3 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 }
-

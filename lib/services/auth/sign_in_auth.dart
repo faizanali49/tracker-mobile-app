@@ -1,16 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:logger/logger.dart';
 
 class AuthRepository {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final _logger = Logger();
 
-  Future<User?> signInCompany({
+  Future<Map<String, dynamic>> signInCompany({
     required String email,
     required String password,
   }) async {
     try {
-      // 1. Authenticate the user with Firebase.
+      // 1. Authenticate user
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -18,38 +20,23 @@ class AuthRepository {
 
       final user = credential.user;
       if (user == null) {
-        throw FirebaseAuthException(
-          code: 'user-not-found',
-          message: 'User not found.',
-        );
+        _logger.w('User not found for $email');
+        return {'success': false, 'message': 'Sign in failed, try again.'};
       }
 
-      // 2. Check if a company document exists for this email.
-      final companyDoc =
-          await _firestore.collection('companies').doc(user.email).get();
-
-      // 3. If the document does not exist, sign the user out and throw an error.
-      if (!companyDoc.exists) {
+      // 2. Verify company document
+      final doc = await _firestore.collection('companies').doc(user.email).get();
+      if (!doc.exists) {
         await _auth.signOut();
-        throw FirebaseAuthException(
-          code: 'not-a-company',
-          message:
-              'This email is not registered as a company. Please use a company account to sign in.',
-        );
+        _logger.w('$email is not a registered company');
+        return {'success': false, 'message': 'Sign in failed, try again.'};
       }
 
-      // 4. If the document exists, return the user.
-      return user;
-    } on FirebaseAuthException catch (e) {
-      // Catch specific Firebase Auth exceptions and re-throw with a custom message.
-      if (e.code == 'user-not-found' || e.code == 'wrong-password') {
-        throw Exception('Invalid email or password.');
-      } else {
-        throw Exception(e.message ?? 'An unknown authentication error occurred.');
-      }
-    } catch (e) {
-      // Catch any other exceptions.
-      throw Exception('An unexpected error occurred during sign in.');
+      _logger.i('Company sign-in successful: ${user.email}');
+      return {'success': true, 'user': user};
+    } catch (e, stack) {
+      _logger.e('Sign in failed', error: e, stackTrace: stack);
+      return {'success': false, 'message': 'Sign in failed, try again.'};
     }
   }
 }

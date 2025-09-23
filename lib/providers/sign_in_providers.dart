@@ -27,7 +27,7 @@ class SignInController extends StateNotifier<AsyncValue<User?>> {
     state = const AsyncLoading();
     try {
       final user = await _repo.signInCompany(email: email, password: password);
-      state = AsyncData(user);
+      state = AsyncData(user['success'] ? user['user'] : null);
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
     }
