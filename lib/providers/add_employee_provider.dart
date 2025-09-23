@@ -52,14 +52,27 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
     clearError();
 
     try {
-      await _employeeService.addEmployee(
+      final result = await _employeeService.addEmployee(
         name: name,
         email: email,
         role: role,
         password: password,
         avatarFile: state.selectedImage,
       );
-      return true;
+
+      // Check if we need to handle re-authentication
+      if (result['requiresReauthentication'] == true) {
+        // Add code to notify user they need to re-login
+        setError('Employee created, but you need to sign in again as company');
+        return false;
+      }
+
+      if (result['success'] == true) {
+        return true;
+      } else {
+        setError(result['message']);
+        return false;
+      }
     } catch (e) {
       setError(e.toString());
       return false;

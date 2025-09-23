@@ -44,7 +44,7 @@ class SignupAuthService {
   }) async {
     final companyEmail = email.trim().toLowerCase();
     
-    // ➡️ FIX: Check Firestore for existing company email before creating the Auth user.
+    // Check Firestore for existing company email before creating the Auth user.
     final companyDoc = await _firestore.collection('companies').doc(companyEmail).get();
     
     if (companyDoc.exists) {
@@ -66,7 +66,7 @@ class SignupAuthService {
       photoUrl = await uploadImage(uid, imageFile);
     }
 
-    // ➡️ FIX: Use the company's email as the document ID.
+    // Use the company's email as the document ID.
     await _firestore.collection('companies').doc(companyEmail).set({
       'uid': uid,
       'email': companyEmail,

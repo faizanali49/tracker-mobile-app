@@ -35,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Kick-off the animation
     _controller.forward();
 
-    // Wait until animation is done (+ optional extra pause) then navigate
+    // Wait until animation is done then navigate
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         Future.delayed(const Duration(seconds: 1), () {
@@ -71,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: ScaleTransition(
                   scale: _scale,
                   child: Image.asset(
-                    'assets/images/scrape.png', // <-- your logo file
+                    'assets/images/scrape.png', 
                     width: 120, // adjust as needed
                   ),
                 ),

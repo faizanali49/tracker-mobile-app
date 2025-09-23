@@ -1,5 +1,6 @@
 // lib/screens/add_employee_screen.dart
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,14 +57,14 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
         false;
   }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<bool> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return false;
 
     final formNotifier = ref.read(employeeFormProvider.notifier);
     final formState = ref.read(employeeFormProvider);
 
     final confirmed = await _showConfirmationDialog();
-    if (!confirmed) return;
+    if (!confirmed) return false;
 
     final success = await formNotifier.addEmployee(
       name: _nameController.text.trim(),
@@ -72,12 +73,10 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
       password: _passwordController.text.trim(),
     );
 
-    if (success && mounted) {
+    if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            '✅ Employee created and invite sent. Employee must verify email to activate.',
-          ),
+          content: Text('✅ Employee created successfully'),
           backgroundColor: Colors.green,
         ),
       );
@@ -88,6 +87,24 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
       _emailController.clear();
       _passwordController.clear();
       formNotifier.setImage(null);
+
+      // If we're still authenticated, stay on the page
+      if (FirebaseAuth.instance.currentUser != null) {
+        return true;
+      } else {
+        // If we're no longer authenticated, navigate to login
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in again as company'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+
+        if (context.mounted) {
+          context.go('/home');
+        }
+        return true;
+      }
     } else if (mounted) {
       final errorMessage =
           formState.errorMessage ?? 'Failed to create employee';
@@ -97,7 +114,9 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
           backgroundColor: Colors.red,
         ),
       );
+      return false;
     }
+    return false;
   }
 
   void _showImagePickerDialog() {
@@ -258,9 +277,10 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                         onTap: formState.isLoading
                             ? null
                             : () async {
-                                await _submitForm();
-                                if (context.mounted) {
-                                  context.pop();
+                                final success = await _submitForm();
+
+                                if (success && context.mounted) {
+                                  // context.pop();
                                 }
                               },
                         child: formState.isLoading

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trackermobile/providers/fetch_company_provider.dart';
 import 'package:trackermobile/providers/fetch_employee_provider.dart';
 import 'package:trackermobile/providers/sign_in_providers.dart';
+import 'package:trackermobile/themes/colors.dart';
 import 'package:trackermobile/widgets/employee_list_widget.dart';
 
 class HomeView extends ConsumerStatefulWidget {
@@ -17,6 +18,7 @@ class HomeView extends ConsumerStatefulWidget {
 class _HomeViewState extends ConsumerState<HomeView> {
   String? usernrole;
   String? avatarUrl;
+
   final _searchController = TextEditingController();
   final String? companyId = FirebaseAuth.instance.currentUser?.email
       ?.toLowerCase();
@@ -98,10 +100,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
                           color: Colors.black,
                         ),
                       ),
-                      const Text(
-                        "Admin",
+                      Text(
+                        companyId ?? 'No Email',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 10,
                           color: Colors.black54,
                           fontWeight: FontWeight.normal,
                         ),
@@ -167,7 +169,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha:0.08),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -271,7 +273,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     },
                     child: filteredEmployees.isEmpty
                         ? ListView(
-                            // Add ListView to make RefreshIndicator work with empty state
                             children: const [
                               SizedBox(height: 100),
                               Center(
@@ -298,7 +299,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                               );
 
                               return asyncStatus.when(
-                                loading: () => EmployeeListWidget(
+                                loading: () => employeeListWidget(
                                   context,
                                   employee,
                                   Colors.grey[200]!,
@@ -316,26 +317,32 @@ class _HomeViewState extends ConsumerState<HomeView> {
                                     hasStatus = true;
                                     switch (status.first.status.toLowerCase()) {
                                       case 'online':
-                                        borderColor = Colors.greenAccent;
-                                        dotColor = Colors.green;
+                                        borderColor = onlineColor;
+                                        dotColor = onlineColor;
+                                        break;
+                                      case 'resumed':
+                                        borderColor = onlineColor;
+                                        dotColor = onlineColor;
                                         break;
                                       case 'offline':
-                                        borderColor = Colors.redAccent;
-                                        dotColor = Colors.red;
+                                        borderColor = offlineColor;
+                                        dotColor = offlineColor;
                                         break;
                                       case 'paused':
-                                        borderColor = Colors.orangeAccent;
-                                        dotColor = Colors.orange;
+                                        borderColor = pauseColor;
+                                        dotColor = pauseColor;
                                         break;
                                     }
                                   }
 
-                                  return EmployeeListWidget(
+                                  return employeeListWidget(
                                     context,
                                     employee,
                                     borderColor,
                                     dotColor,
                                     hasStatus,
+                                    avatarUrl: employee.avatarUrl,
+                                    role: employee.role,
                                   );
                                 },
                               );
@@ -352,4 +359,3 @@ class _HomeViewState extends ConsumerState<HomeView> {
   }
 }
 
-// Removing the old buildStatusCard as it's no longer needed for the new design

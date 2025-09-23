@@ -18,36 +18,6 @@ final employeesStreamProvider =
       });
     });
 
-
-
-// final employeeCurrentStatus =
-//     StreamProvider.family<
-//       EmployeeStatus?,
-//       (String companyEmail, String employeeEmail)
-//     >((ref, params) {
-//       final (companyEmailId, employeeEmailId) = params;
-
-//       final firestore = FirebaseFirestore.instance;
-
-//       final activitiesQuery = firestore
-//           .collection('companies')
-//           .doc(companyEmailId)
-//           .collection('employees')
-//           .doc(employeeEmailId)
-//           .collection('activities')
-//           .orderBy('timestamp', descending: true)
-//           .limit(1);
-
-//       return activitiesQuery.snapshots().map((snapshot) {
-//         if (snapshot.docs.isEmpty) {
-//           return EmployeeStatus(status: 'its offline');
-//         }
-
-//         final doc = snapshot.docs.first;
-//         return EmployeeStatus.fromFirestore(doc);
-//       });
-//     });
-
 final employeeCurrentStatus = StreamProvider.family
     .autoDispose<
       List<EmployeeStatus>,

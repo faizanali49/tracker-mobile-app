@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:trackermobile/models/fetch_employee_model.dart';
-import 'package:trackermobile/views/emplooyee_view/employee_view.dart';
+import 'package:trackermobile/views/home/employee_detail_view.dart';
 
-Widget EmployeeListWidget(
+Widget employeeListWidget(
   BuildContext context,
   FetchEmployee employee,
   Color borderColor,
   Color dotColor,
-  bool hasStatus,
-) {
+  bool hasStatus, {
+  String? avatarUrl,
+  String? role,
+}) {
   return InkWell(
     onTap: () {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => EmployeeDetailPage(employee: employee.email),
+          builder: (_) => EmployeeDetailPage(
+            employee: employee.email,
+            avatar: employee.avatarUrl,
+            role: employee.role,
+          ),
         ),
       );
     },
@@ -27,7 +33,7 @@ Widget EmployeeListWidget(
         border: Border.all(color: borderColor, width: 2),
         boxShadow: [
           BoxShadow(
-            color: borderColor.withOpacity(0.3),
+            color: borderColor.withValues(alpha:0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -40,7 +46,7 @@ Widget EmployeeListWidget(
             backgroundColor: Colors.grey[200],
             backgroundImage: NetworkImage(
               employee.avatarUrl ??
-                  'https://placehold.co/100x100/E5E7EB/4B5563/png?text=A',
+                  'https://www.gravatar.com/avatar/placeholder?d=mp&s=200',
             ),
           ),
           const SizedBox(width: 16),

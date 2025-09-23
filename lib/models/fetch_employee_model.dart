@@ -33,7 +33,6 @@ class FetchEmployee {
   }
 }
 
-// NOTE: This class is no longer needed because the Employee model now contains status.
 class EmployeeStatus {
   final String status;
   final DateTime? timestamp;

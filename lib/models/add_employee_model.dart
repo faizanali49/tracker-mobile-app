@@ -36,7 +36,6 @@ class AddEmployeeModel {
   }
 }
 
-
 class EmployeeFormState {
   final bool isLoading;
   final String? errorMessage;
