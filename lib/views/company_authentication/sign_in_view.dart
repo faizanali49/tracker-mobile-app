@@ -51,24 +51,6 @@ class _SignInViewState extends ConsumerState<SignInView> {
   Widget build(BuildContext context) {
     final loginState = ref.watch(signInControllerProvider);
 
-    // Listen for state changes
-    // ref.listen<AsyncValue<User?>>(signInControllerProvider, (previous, next) {
-    //   next.whenOrNull(
-    //     data: (user) {
-    //       if (user != null) {
-    //         context.go('/home');
-    //       }
-    //     },
-    //     error: (error, stackTrace) {
-    //       if (error is FirebaseAuthException && error.code == 'not-a-company') {
-    //         _showErrorDialog(error.message!);
-    //       } else {
-    //         // Handle other general errors
-    //         _showErrorDialog(error.toString());
-    //       }
-    //     },
-    //   );
-    // });
 
     return Scaffold(
       backgroundColor: Colors.white,
