@@ -45,8 +45,7 @@ Widget employeeListWidget(
             radius: 28,
             backgroundColor: Colors.grey[200],
             backgroundImage: NetworkImage(
-              employee.avatarUrl ??
-                  'https://www.gravatar.com/avatar/placeholder?d=mp&s=200',
+              employee.avatarUrl
             ),
           ),
           const SizedBox(width: 16),

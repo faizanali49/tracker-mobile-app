@@ -3,11 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:logger/logger.dart';
 
 class SignupAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final logger = Logger();
 
   Future<File?> pickImage() async {
     try {
@@ -43,21 +45,26 @@ class SignupAuthService {
     File? imageFile,
   }) async {
     final companyEmail = email.trim().toLowerCase();
-    
+
     // Check Firestore for existing company email before creating the Auth user.
-    final companyDoc = await _firestore.collection('companies').doc(companyEmail).get();
-    
+    final companyDoc = await _firestore
+        .collection('companies')
+        .doc(companyEmail)
+        .get();
+
     if (companyDoc.exists) {
-      throw FirebaseAuthException(
-        code: 'email-already-in-use',
-        message: 'This email is already registered as a company.',
-      );
+      logger.w('Company with email $companyEmail already exists.');
     }
 
     final userCredential = await _auth.createUserWithEmailAndPassword(
       email: companyEmail,
       password: password.trim(),
     );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+      logger.i('Verification email sent to ${user.email}');
+    }
 
     final uid = userCredential.user!.uid;
 

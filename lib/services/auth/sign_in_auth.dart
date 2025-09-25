@@ -25,7 +25,10 @@ class AuthRepository {
       }
 
       // 2. Verify company document
-      final doc = await _firestore.collection('companies').doc(user.email).get();
+      final doc = await _firestore
+          .collection('companies')
+          .doc(user.email)
+          .get();
       if (!doc.exists) {
         await _auth.signOut();
         _logger.w('$email is not a registered company');

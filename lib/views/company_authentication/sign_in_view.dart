@@ -51,7 +51,6 @@ class _SignInViewState extends ConsumerState<SignInView> {
   Widget build(BuildContext context) {
     final loginState = ref.watch(signInControllerProvider);
 
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -96,6 +95,23 @@ class _SignInViewState extends ConsumerState<SignInView> {
                       }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 5),
+                  // Forget Password Button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: InkWell(
+                      onTap: () {
+                        context.push('/forgot-password');
+                      },
+                      child: const Text(
+                        "Forgot Password?",
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 40),
                   SizedBox(

@@ -30,7 +30,7 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
   late DateTime _selectedDay;
   late List<DateTime> _daysInWeek;
   String? avatarUrl;
-  final _companyEmail = FirebaseAuth.instance.currentUser?.email;
+  // final _companyEmail = FirebaseAuth.instance.currentUser?.email;
 
   @override
   void initState() {

@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:trackermobile/services/auth/sign_in_auth_gate.dart';
+import 'package:trackermobile/views/company_authentication/forget_password_view.dart';
 import 'package:trackermobile/views/company_authentication/sign_in_view.dart';
 import 'package:trackermobile/views/company_authentication/singn_up_view.dart';
 import 'package:trackermobile/views/home/add_employee.dart';
@@ -19,6 +20,11 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/signup', builder: (context, state) => SignupView()),
     GoRoute(path: '/home', builder: (context, state) => HomeView()),
     GoRoute(path: '/login', builder: (context, state) => SignInView()),
+
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => ForgetPassword(),
+    ),
     // GoRoute(
     //   name: 'employee',
     //   path: '/employee/:id', // Add slash between path and parameter

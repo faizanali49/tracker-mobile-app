@@ -49,6 +49,7 @@ dependencies:
   flutter_riverpod: ^3.0.0
   logger: ^2.6.1
   rxdart: ^0.28.0
+  email_validator: ^3.0.0
 
 dev_dependencies:
   flutter_test:
